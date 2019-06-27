@@ -18,15 +18,28 @@ const answerItemsSelection = ".answer .list-group-item"
 // Public
 func (t *Test) Parse() {
   t.getMetaData()
+  chQuestions := make(chan Question)
+  chFinished := make(chan bool)
 
+  // Kick off the parsing
   for i := 1; i <= t.NumberOfPages; i++ {
-    t.parseQuestions(i)
+    go parseQuestions(i, t.Path, chQuestions, chFinished)
   }
+
+  // Subscription to parsed questions
+  for c := 0; c < t.NumberOfPages; {
+		select {
+		case question := <-chQuestions:
+			t.Questions = append(t.Questions, question)
+		case <-chFinished:
+			c++
+		}
+	}
 }
 
 // Private
 func (t *Test) getMetaData() {
-  url := t.prepareUrl(1)
+  url := prepareUrl(1, t.Path)
 
   // Request page
   res, err := http.Get(url)
@@ -59,8 +72,40 @@ func (t *Test) getMetaData() {
   doc.Find(breadcrumbsSelector).Each(t.parseBreadcrumb)
 }
 
-func (t *Test) parseQuestions(pageNumber int) {
-  url := t.prepareUrl(pageNumber)
+
+func(a *Answer) fillFromSelection(item *goquery.Selection) {
+  var text string
+  isCorrect := item.HasClass("alert-success")
+
+  if isCorrect {
+    text = item.Find("strong").Text()
+  } else {
+    text = item.Text()
+  }
+
+  a.Text = strings.TrimSpace(text)
+  a.IsCorrect = isCorrect
+}
+
+
+// Utils
+func (t *Test) parseBreadcrumb (i int, crumbItem *goquery.Selection) {
+  var indexItem string
+
+  if crumbItem.HasClass("active") {
+    indexItem = crumbItem.Find("span span").Text()
+  } else {
+    indexItem = crumbItem.Find("a span").Text()
+  }
+
+  t.Index = append(t.Index, indexItem)
+}
+
+func parseQuestions(pageNumber int, path string, chQuestions chan Question, chFinish chan bool) {
+  defer func() {
+    chFinish <- true
+  }()
+  url := prepareUrl(pageNumber, path)
 
   // Request page
   res, err := http.Get(url)
@@ -81,7 +126,6 @@ func (t *Test) parseQuestions(pageNumber int) {
   }
 
   // Find question blocks
-  var questions []Question
   doc.Find(questionItemsSelection).Each(func(i int, testItem *goquery.Selection) {
     qtext := testItem.Find(".ask a").Text()
     question := Question{
@@ -94,55 +138,23 @@ func (t *Test) parseQuestions(pageNumber int) {
       question.Answers = append(question.Answers, answer)
     })
 
-    questions = append(questions, question)
+    chQuestions <- question
   })
-
-  t.Questions = append(t.Questions, questions...)
 } 
 
-func (t *Test) parseQuestionPanel(i int, testItem *goquery.Selection) {
-}
-
-func(a *Answer) fillFromSelection(item *goquery.Selection) {
-  var text string
-  isCorrect := item.HasClass("alert-success")
-
-  if isCorrect {
-    text = item.Find("strong").Text()
-  } else {
-    text = item.Text()
-  }
-
-  a.Text = strings.TrimSpace(text)
-  a.IsCorrect = isCorrect
-}
-
-func (t *Test) prepareUrl(pageNumber int) string {
+func prepareUrl(pageNumber int, path string) string {
   u, err := url.Parse(RootUrl)
   if err != nil {
     log.Fatal(err)
   }
   pnumber := strconv.Itoa(pageNumber)
   
-  u.Path = t.Path
+  u.Path = path
   query := u.Query()
   query.Set("page", pnumber)
   u.RawQuery = query.Encode()
 
   return u.String()
-}
-
-// Utils
-func (t *Test) parseBreadcrumb (i int, crumbItem *goquery.Selection) {
-  var indexItem string
-
-  if crumbItem.HasClass("active") {
-    indexItem = crumbItem.Find("span span").Text()
-  } else {
-    indexItem = crumbItem.Find("a span").Text()
-  }
-
-  t.Index = append(t.Index, indexItem)
 }
 
 func getNumberOfPagesFromUrl(href string) int {
