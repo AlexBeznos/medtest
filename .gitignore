@@ -1,0 +1,5 @@
+# Ignore vim's swap files
+.*.sw?
+
+# Golang libs
+/vendor

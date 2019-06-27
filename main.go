@@ -6,20 +6,40 @@ import (
   "log"
   "io/ioutil"
 
-  "github.com/AlexBeznos/med-test-parser/parser"
+  "github.com/AlexBeznos/medtest/parser"
 )
 
-func main() {
-  test := parser.Test{
-    Path: "/uk/node/list/tests/html/10",
-  }
-  fmt.Println("Parsing started...")
-  test.Parse()
-  fmt.Println("Parsing finished!")
+type FullPack struct {
+  Tests []parser.QuestionsPage `json:"tests"`
+}
 
-  // Temp solution
+func main() {
+
+  conf := parser.Config{
+    RootUrl: "https://www.med-test.in.ua",
+    SitemapPath: "/uk/site-map",
+  }
+  sitemap := parser.Sitemap{}
+  sitemap.Parse(&conf)
+
+  pack := FullPack{}
+  for _, path := range sitemap.Paths {
+    fmt.Printf("Path: %s\n", path)
+
+    fmt.Println("Parsing started...")
+
+    qpage := parser.QuestionsPage{
+      Path: path,
+    }
+    qpage.Parse(&conf)
+
+    fmt.Println("Parsing finished!")
+
+    pack.Tests = append(pack.Tests, qpage)
+  }
+
   fmt.Println("Marshaling...")
-  marshalled, _ := json.Marshal(test)
+  marshalled, _ := json.Marshal(pack)
   fmt.Println("Writing to data.json")
   err := ioutil.WriteFile("data.json", []byte(string(marshalled)), 0644)
   if err != nil {

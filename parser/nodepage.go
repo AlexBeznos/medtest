@@ -4,11 +4,26 @@ import (
 	"log"
   "strconv"
   "strings"
-	"net/url"
 	"net/http"
 
   "github.com/PuerkitoBio/goquery"
 )
+
+type QuestionsPage struct {
+  Path string `json:"path"`
+  Questions []Question `json:"questions"`
+  Index []string `json:"index"`
+  NumberOfPages int `json:"numberOfPages"`
+}
+type Question struct {
+	Text    string   `json:"text"`
+	Answers []Answer `json:"answers"`
+}
+
+type Answer struct {
+	Text      string `json:"text"`
+	IsCorrect bool   `json:"isCorrect"`
+}
 
 const lastPageLinkSelector = ".navigation .pagination .last a"
 const breadcrumbsSelector = "ul.breadcrumb li"
@@ -16,21 +31,23 @@ const questionItemsSelection = "#tests-content .container .row .test .panel"
 const answerItemsSelection = ".answer .list-group-item"
 
 // Public
-func (t *Test) Parse() {
-  t.getMetaData()
+func (qpage *QuestionsPage) Parse(conf *Config) {
+  qpage.getMetaData(conf)
+
   chQuestions := make(chan Question)
   chFinished := make(chan bool)
 
   // Kick off the parsing
-  for i := 1; i <= t.NumberOfPages; i++ {
-    go parseQuestions(i, t.Path, chQuestions, chFinished)
+  for i := 1; i <= qpage.NumberOfPages; i++ {
+    url := conf.CombineUrl(qpage.Path, i)
+    go parseQuestions(url, chQuestions, chFinished)
   }
 
   // Subscription to parsed questions
-  for c := 0; c < t.NumberOfPages; {
+  for c := 0; c < qpage.NumberOfPages; {
 		select {
 		case question := <-chQuestions:
-			t.Questions = append(t.Questions, question)
+			qpage.Questions = append(qpage.Questions, question)
 		case <-chFinished:
 			c++
 		}
@@ -38,8 +55,8 @@ func (t *Test) Parse() {
 }
 
 // Private
-func (t *Test) getMetaData() {
-  url := prepareUrl(1, t.Path)
+func (qpage *QuestionsPage) getMetaData(conf *Config) {
+  url := conf.CombineUrl(qpage.Path, 1)
 
   // Request page
   res, err := http.Get(url)
@@ -62,50 +79,24 @@ func (t *Test) getMetaData() {
   if doc.Find(lastPageLinkSelector).Length() != 0 {
     lastPageLink := doc.Find(lastPageLinkSelector)
     href, _ := lastPageLink.Attr("href")
-    numberOfPages := getNumberOfPagesFromUrl(href)
-    t.NumberOfPages = numberOfPages
+    pageParam := conf.GetParamFromPath(href, "page")
+    numberOfPages, err := strconv.Atoi(pageParam)
+    if err != nil {
+      log.Fatal(err)
+    }
+    qpage.NumberOfPages = numberOfPages
   } else {
-    t.NumberOfPages = 1
+    qpage.NumberOfPages = 1
   }
 
   // Get breadcrumbs
-  doc.Find(breadcrumbsSelector).Each(t.parseBreadcrumb)
+  doc.Find(breadcrumbsSelector).Each(qpage.parseBreadcrumb)
 }
 
-
-func(a *Answer) fillFromSelection(item *goquery.Selection) {
-  var text string
-  isCorrect := item.HasClass("alert-success")
-
-  if isCorrect {
-    text = item.Find("strong").Text()
-  } else {
-    text = item.Text()
-  }
-
-  a.Text = strings.TrimSpace(text)
-  a.IsCorrect = isCorrect
-}
-
-
-// Utils
-func (t *Test) parseBreadcrumb (i int, crumbItem *goquery.Selection) {
-  var indexItem string
-
-  if crumbItem.HasClass("active") {
-    indexItem = crumbItem.Find("span span").Text()
-  } else {
-    indexItem = crumbItem.Find("a span").Text()
-  }
-
-  t.Index = append(t.Index, indexItem)
-}
-
-func parseQuestions(pageNumber int, path string, chQuestions chan Question, chFinish chan bool) {
+func parseQuestions(url string, chQuestions chan Question, chFinish chan bool) {
   defer func() {
     chFinish <- true
   }()
-  url := prepareUrl(pageNumber, path)
 
   // Request page
   res, err := http.Get(url)
@@ -142,38 +133,29 @@ func parseQuestions(pageNumber int, path string, chQuestions chan Question, chFi
   })
 } 
 
-func prepareUrl(pageNumber int, path string) string {
-  u, err := url.Parse(RootUrl)
-  if err != nil {
-    log.Fatal(err)
-  }
-  pnumber := strconv.Itoa(pageNumber)
-  
-  u.Path = path
-  query := u.Query()
-  query.Set("page", pnumber)
-  u.RawQuery = query.Encode()
+// Utils
+func (qpage *QuestionsPage) parseBreadcrumb (i int, crumbItem *goquery.Selection) {
+  var indexItem string
 
-  return u.String()
+  if crumbItem.HasClass("active") {
+    indexItem = crumbItem.Find("span span").Text()
+  } else {
+    indexItem = crumbItem.Find("a span").Text()
+  }
+
+  qpage.Index = append(qpage.Index, indexItem)
 }
 
-func getNumberOfPagesFromUrl(href string) int {
-  u, err := url.Parse(RootUrl)
-  if err != nil {
-    log.Fatal(err)
+func(a *Answer) fillFromSelection(item *goquery.Selection) {
+  var text string
+  isCorrect := item.HasClass("alert-success")
+
+  if isCorrect {
+    text = item.Find("strong").Text()
+  } else {
+    text = item.Text()
   }
 
-  fullUrl, err := u.Parse(href)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  query := fullUrl.Query()
-  pageNumber := query.Get("page")
-  num, err := strconv.Atoi(pageNumber)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  return num
+  a.Text = strings.TrimSpace(text)
+  a.IsCorrect = isCorrect
 }
