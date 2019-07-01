@@ -1,4 +1,4 @@
-package parser
+package medtest
 
 import (
   "net/url"
