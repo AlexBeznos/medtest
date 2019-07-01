@@ -1,55 +1,55 @@
 package medtest
 
 import (
-  "net/url"
-  "strconv"
-  "log"
+	"log"
+	"net/url"
+	"strconv"
 )
 
 type Config struct {
-  RootUrl string
-  SitemapPath string
+	RootUrl     string
+	SitemapPath string
 }
 
 func (c *Config) CombineUrl(path string, pageNumber int) string {
-  u, err := url.Parse(c.RootUrl)
-  if err != nil {
-    log.Fatal(err)
-  }
-  pnumber := strconv.Itoa(pageNumber)
-  
-  u.Path = path
-  query := u.Query()
-  query.Set("page", pnumber)
-  u.RawQuery = query.Encode()
+	u, err := url.Parse(c.RootUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pnumber := strconv.Itoa(pageNumber)
 
-  return u.String()
+	u.Path = path
+	query := u.Query()
+	query.Set("page", pnumber)
+	u.RawQuery = query.Encode()
+
+	return u.String()
 }
 
 func (c *Config) PrepareSitemapUrl() string {
-  u, err := url.Parse(c.RootUrl)
-  if err != nil {
-    log.Fatal(err)
-  }
-  
-  u.Path = c.SitemapPath
+	u, err := url.Parse(c.RootUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-  return u.String()
-} 
+	u.Path = c.SitemapPath
+
+	return u.String()
+}
 
 func (c *Config) GetParamFromPath(path string, name string) string {
-  u, err := url.Parse(c.RootUrl)
-  if err != nil {
-    log.Fatal(err)
-  }
+	u, err := url.Parse(c.RootUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-  fullUrl, err := u.Parse(path)
-  if err != nil {
-    log.Fatal(err)
-  }
+	fullUrl, err := u.Parse(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-  query := fullUrl.Query()
-  param := query.Get(name)
+	query := fullUrl.Query()
+	param := query.Get(name)
 
-  return param
+	return param
 }
