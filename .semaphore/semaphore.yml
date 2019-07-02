@@ -1,18 +1,24 @@
 # For more Go information and examples, see
 # https://docs.semaphoreci.com/article/86-language-golang
 version: v1.0
-name: Hello Semaphore
+name: Medtest parser
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: Golang example
+  - name: Test
+    prologue:
+        commands:
+          # Dep install db
+          - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+          - checkout
+          - go version
+          - cache restore deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock),deps-$SEMAPHORE_GIT_BRANCH,deps-master
+          - dep ensure -v
+          - cache store deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock) vendor
     task:
       jobs:
-        - name: Run Go
+        - name: Run `go test`
           commands:
-            - go version
-            # Uncomment the following line to pull your code,
-            # then proceed by adding your custom commands:
-            #- checkout
+            - go test
