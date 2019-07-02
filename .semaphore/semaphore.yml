@@ -8,16 +8,16 @@ agent:
     os_image: ubuntu1804
 blocks:
   - name: Test
-    prologue:
-        commands:
-          # Dep install db
-          - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-          - checkout
-          - go version
-          - cache restore deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock),deps-$SEMAPHORE_GIT_BRANCH,deps-master
-          - dep ensure -v
-          - cache store deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock) vendor
     task:
+      prologue:
+          commands:
+            # Dep install db
+            - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            - checkout
+            - go version
+            - cache restore deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock),deps-$SEMAPHORE_GIT_BRANCH,deps-master
+            - dep ensure -v
+            - cache store deps-$SEMAPHORE_GIT_BRANCH-$(checksum Gopkg.lock) vendor
       jobs:
         - name: Run `go test`
           commands:
