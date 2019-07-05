@@ -1,7 +1,6 @@
 package medtest
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
@@ -14,26 +13,25 @@ type Sitemap struct {
 }
 
 // Public
-func (s *Sitemap) Parse(conf *Config) {
+func (s *Sitemap) Parse(conf *Config) error {
+  var err error
+
 	pageUrl := conf.PrepareSitemapUrl()
 
 	// Request page
 	res, err := http.Get(pageUrl)
 	if err != nil {
-		log.Fatal(err)
+    return BuildError("Sitemap parsing failed", err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("Status code error: %d, %s\n%s", res.StatusCode, res.Status, pageUrl)
+    return BuildError("Sitemap parsing failed, page broken", err)
 	}
 
 	// Load HTML document to goquery
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	doc, _ := goquery.NewDocumentFromReader(res.Body)
 
 	// Find urls
 	doc.Find(sitemapItemsSelector).Each(func(i int, anchor *goquery.Selection) {
@@ -43,4 +41,6 @@ func (s *Sitemap) Parse(conf *Config) {
 			s.Paths = append(s.Paths, path)
 		}
 	})
+
+  return nil
 }
