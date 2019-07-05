@@ -1,6 +1,7 @@
 package medtest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -30,17 +31,20 @@ const breadcrumbsSelector = "ul.breadcrumb li"
 const questionItemsSelection = "#tests-content .container .row .test .panel"
 const answerItemsSelection = ".answer .list-group-item"
 
-// Public
-func (qpage *QuestionsPage) Parse(conf *Config) {
-	qpage.getMetaData(conf)
+func (qpage *QuestionsPage) Parse(conf *Config) error {
+	err := qpage.getMetaData(conf)
+	if err != nil {
+		return err
+	}
 
 	chQuestions := make(chan Question)
 	chFinished := make(chan bool)
+	chErrors := make(chan error)
 
 	// Kick off the parsing
 	for i := 1; i <= qpage.NumberOfPages; i++ {
 		url := conf.CombineUrl(qpage.Path, i)
-		go parseQuestions(url, chQuestions, chFinished)
+		go parseQuestions(url, chQuestions, chErrors, chFinished)
 	}
 
 	// Subscription to parsed questions
@@ -48,32 +52,34 @@ func (qpage *QuestionsPage) Parse(conf *Config) {
 		select {
 		case question := <-chQuestions:
 			qpage.Questions = append(qpage.Questions, question)
+		case err := <-chErrors:
+			qpage.Questions = make([]Question, 0)
+			return err
 		case <-chFinished:
 			c++
 		}
 	}
+
+	return nil
 }
 
-// Private
-func (qpage *QuestionsPage) getMetaData(conf *Config) {
+func (qpage *QuestionsPage) getMetaData(conf *Config) error {
 	url := conf.CombineUrl(qpage.Path, 1)
 
 	// Request page
 	res, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return BuildError("Request failed", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("Status code error: %d, %s\n%s", res.StatusCode, res.Status, url)
+		msg := fmt.Sprintf("Page broken. URL: %s", url)
+		return BuildError(msg, nil)
 	}
 
 	// Load HTML document to goquery
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	doc, _ := goquery.NewDocumentFromReader(res.Body)
 
 	// Is page have pagination
 	if doc.Find(lastPageLinkSelector).Length() != 0 {
@@ -91,9 +97,11 @@ func (qpage *QuestionsPage) getMetaData(conf *Config) {
 
 	// Get breadcrumbs
 	doc.Find(breadcrumbsSelector).Each(qpage.parseBreadcrumb)
+
+	return nil
 }
 
-func parseQuestions(url string, chQuestions chan Question, chFinish chan bool) {
+func parseQuestions(url string, chQuestions chan Question, chErrors chan error, chFinish chan bool) {
 	defer func() {
 		chFinish <- true
 	}()
@@ -101,20 +109,17 @@ func parseQuestions(url string, chQuestions chan Question, chFinish chan bool) {
 	// Request page
 	res, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		chErrors <- BuildError("Request failed", err)
 	}
-
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("Status code error: %d, %s\n%s", res.StatusCode, res.Status, url)
+		msg := fmt.Sprintf("Page broken. URL: %s", url)
+		chErrors <- BuildError(msg, nil)
 	}
 
 	// Load HTML document to goquery
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	doc, _ := goquery.NewDocumentFromReader(res.Body)
 
 	// Find question blocks
 	doc.Find(questionItemsSelection).Each(func(i int, testItem *goquery.Selection) {

@@ -12,7 +12,10 @@ conf := medtest.Config{
 
 // Initialize sitemap struct
 sitemap := medtest.Sitemap{}
-sitemap.Parse(&conf) # parse sitemap
+err := sitemap.Parse(&conf) # parse sitemap
+if err != nil {
+  log.Fatal(err)
+}
 
 // Initialize some kind of struct | slice | array which will contain all questions
 pack := FullPack{}
@@ -29,7 +32,10 @@ for _, path := range sitemap.Paths { # Here we iterating through all paths
   }
   
   // parse page itself
-  qpage.Parse(&conf)
+  err := qpage.Parse(&conf)
+  if err != nil {
+    log.Fatal(err)
+  }
 
   fmt.Println("Parsing finished!")
 
