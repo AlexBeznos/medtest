@@ -1,8 +1,8 @@
 package medtest
 
 import (
+	"errors"
 	"fmt"
-  "errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -18,7 +18,7 @@ func TestConfigMethods(t *testing.T) {
 			Convey("return full url with required page number", func() {
 				number := 125
 				path := "uk/node/path"
-        url := conf.CombineUrl(path, number)
+				url := conf.CombineUrl(path, number)
 				expected := fmt.Sprintf("%s%s?page=%d", conf.RootUrl, path, number)
 
 				So(url, ShouldEqual, expected)
@@ -48,24 +48,24 @@ func TestConfigMethods(t *testing.T) {
 		})
 	})
 
-  Convey("#BuildError", t, func() {
-    Convey("when error provided", func() {
-      Convey("return error with provided error inside", func() {
-        err := errors.New("some shit happened")
-        msg := "Hello world"
-        result := errors.New("Hello world. Error is: some shit happened")
+	Convey("#BuildError", t, func() {
+		Convey("when error provided", func() {
+			Convey("return error with provided error inside", func() {
+				err := errors.New("some shit happened")
+				msg := "Hello world"
+				result := errors.New("Hello world. Error is: some shit happened")
 
-        So(BuildError(msg, err), ShouldResemble, result)
-      })
-    })
+				So(BuildError(msg, err), ShouldResemble, result)
+			})
+		})
 
-    Convey("when error not provided", func() {
-      Convey("return error with message only", func() {
-        msg := "Hello world"
-        result := errors.New("Hello world")
+		Convey("when error not provided", func() {
+			Convey("return error with message only", func() {
+				msg := "Hello world"
+				result := errors.New("Hello world")
 
-        So(BuildError(msg, nil), ShouldResemble, result)
-      })
-    })
-  })
+				So(BuildError(msg, nil), ShouldResemble, result)
+			})
+		})
+	})
 }

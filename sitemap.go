@@ -14,20 +14,20 @@ type Sitemap struct {
 
 // Public
 func (s *Sitemap) Parse(conf *Config) error {
-  var err error
+	var err error
 
 	pageUrl := conf.PrepareSitemapUrl()
 
 	// Request page
 	res, err := http.Get(pageUrl)
 	if err != nil {
-    return BuildError("Sitemap parsing failed", err)
+		return BuildError("Sitemap parsing failed", err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-    return BuildError("Sitemap parsing failed, page broken", err)
+		return BuildError("Sitemap parsing failed, page broken", err)
 	}
 
 	// Load HTML document to goquery
@@ -42,5 +42,5 @@ func (s *Sitemap) Parse(conf *Config) error {
 		}
 	})
 
-  return nil
+	return nil
 }

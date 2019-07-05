@@ -1,7 +1,7 @@
 package medtest
 
 import (
-  "errors"
+	"errors"
 	"strings"
 	"testing"
 
@@ -35,30 +35,30 @@ func TestSitemapMethods(t *testing.T) {
 				})
 			})
 
-      Convey("when page can't be loaded", func() {
+			Convey("when page can't be loaded", func() {
 				defer gock.Off()
 				gock.New(conf.RootUrl).
 					Get(conf.SitemapPath).
 					Reply(500)
-        
+
 				Convey("return error", func() {
-          err := st.Parse(&conf)
+					err := st.Parse(&conf)
 
 					So(err, ShouldResemble, errors.New("Sitemap parsing failed, page broken"))
 				})
-      })
+			})
 
-      Convey("when url fucked up", func() {
+			Convey("when url fucked up", func() {
 				Convey("return error", func() {
-          config := Config{
-            RootUrl: "",
-            SitemapPath: "",
-          }
-          err := st.Parse(&config)
+					config := Config{
+						RootUrl:     "",
+						SitemapPath: "",
+					}
+					err := st.Parse(&config)
 
-          So(err, ShouldResemble, errors.New("Sitemap parsing failed. Error is: Get : unsupported protocol scheme \"\""))
+					So(err, ShouldResemble, errors.New("Sitemap parsing failed. Error is: Get : unsupported protocol scheme \"\""))
 				})
-      })
+			})
 		})
 	})
 }

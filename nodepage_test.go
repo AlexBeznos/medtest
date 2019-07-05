@@ -2,10 +2,10 @@ package medtest
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"strings"
 	"testing"
-  "errors"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/h2non/gock.v1"
@@ -44,7 +44,7 @@ func TestNodepageMethods(t *testing.T) {
 					Reply(200).
 					File("testdata/nodepage/without_pagination.html")
 
-        qpage.Parse(&conf)
+				qpage.Parse(&conf)
 
 				So(qpage.NumberOfPages, ShouldEqual, expectedNumberOfPages)
 				So(strings.Join(qpage.Index, ", "), ShouldEqual, expectedIndex)
@@ -83,7 +83,7 @@ func TestNodepageMethods(t *testing.T) {
 					Reply(200).
 					File("testdata/nodepage/full_test_2.html")
 
-        qpage.Parse(&conf)
+				qpage.Parse(&conf)
 
 				So(qpage.NumberOfPages, ShouldEqual, expectedNumberOfPages)
 				So(strings.Join(qpage.Index, ", "), ShouldEqual, expectedIndex)
@@ -94,8 +94,8 @@ func TestNodepageMethods(t *testing.T) {
 			})
 		})
 
-    Convey("when request for metadata failed", func() {
-      Convey("return error", func() {
+		Convey("when request for metadata failed", func() {
+			Convey("return error", func() {
 				qpage := QuestionsPage{
 					Path: originPath,
 				}
@@ -107,38 +107,38 @@ func TestNodepageMethods(t *testing.T) {
 					}).
 					Persist().
 					Reply(500)
-        expectedError := errors.New("Page broken. URL: https://www.med-test.in.ua/uk/node/list/tests/html/293?page=1")
+				expectedError := errors.New("Page broken. URL: https://www.med-test.in.ua/uk/node/list/tests/html/293?page=1")
 
-        err := qpage.Parse(&conf)
+				err := qpage.Parse(&conf)
 
-        So(err, ShouldResemble, expectedError)
-      })
-    })
+				So(err, ShouldResemble, expectedError)
+			})
+		})
 
-    Convey("when root path and path empty", func() {
-      Convey("return error", func() {
-        qpage := QuestionsPage{
-          Path: "",
-        }
-        config := Config{
-          RootUrl: "",
-        }
-        expectedError := errors.New("Request failed. Error is: Get ?page=1: unsupported protocol scheme \"\"")
+		Convey("when root path and path empty", func() {
+			Convey("return error", func() {
+				qpage := QuestionsPage{
+					Path: "",
+				}
+				config := Config{
+					RootUrl: "",
+				}
+				expectedError := errors.New("Request failed. Error is: Get ?page=1: unsupported protocol scheme \"\"")
 
-        err := qpage.Parse(&config)
+				err := qpage.Parse(&config)
 
-        So(err, ShouldResemble, expectedError)
-      })
-    })
+				So(err, ShouldResemble, expectedError)
+			})
+		})
 
-    Convey("when one of the pages failed", func() {
-      Convey("return error", func() {
+		Convey("when one of the pages failed", func() {
+			Convey("return error", func() {
 				qpage := QuestionsPage{
 					Path: originPath,
 				}
 				expectedNumberOfPages := 2
 				expectedIndex := "Krok M, Diagnostics laboratory, Archive, Infections, 2016"
-        expectedError := errors.New("Page broken. URL: https://www.med-test.in.ua/uk/node/list/tests/html/293?page=2")
+				expectedError := errors.New("Page broken. URL: https://www.med-test.in.ua/uk/node/list/tests/html/293?page=2")
 
 				defer gock.Off()
 				gock.New(conf.RootUrl).
@@ -159,13 +159,13 @@ func TestNodepageMethods(t *testing.T) {
 					Persist().
 					Reply(500)
 
-        err := qpage.Parse(&conf)
+				err := qpage.Parse(&conf)
 
 				So(qpage.NumberOfPages, ShouldEqual, expectedNumberOfPages)
 				So(strings.Join(qpage.Index, ", "), ShouldEqual, expectedIndex)
-        So(err, ShouldResemble, expectedError)
-        So(len(qpage.Questions), ShouldEqual, 0)
-      })
-    })
+				So(err, ShouldResemble, expectedError)
+				So(len(qpage.Questions), ShouldEqual, 0)
+			})
+		})
 	})
 }

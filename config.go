@@ -1,10 +1,10 @@
 package medtest
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
-  "errors"
-  "fmt"
 )
 
 type Config struct {
@@ -43,13 +43,13 @@ func (c *Config) GetParamFromPath(path string, name string) string {
 }
 
 func BuildError(msg string, err error) error {
-  var result error
+	var result error
 
-  if err != nil {
-    result = errors.New(fmt.Sprintf("%s. Error is: %s", msg, err.Error()))
-  } else {
-    result = errors.New(msg)
-  }
+	if err != nil {
+		result = errors.New(fmt.Sprintf("%s. Error is: %s", msg, err.Error()))
+	} else {
+		result = errors.New(msg)
+	}
 
-  return result
+	return result
 }

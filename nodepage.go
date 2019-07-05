@@ -1,10 +1,10 @@
 package medtest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-  "fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -32,14 +32,14 @@ const questionItemsSelection = "#tests-content .container .row .test .panel"
 const answerItemsSelection = ".answer .list-group-item"
 
 func (qpage *QuestionsPage) Parse(conf *Config) error {
-  err := qpage.getMetaData(conf)
-  if err != nil {
-    return err
-  }
+	err := qpage.getMetaData(conf)
+	if err != nil {
+		return err
+	}
 
 	chQuestions := make(chan Question)
 	chFinished := make(chan bool)
-  chErrors := make(chan error)
+	chErrors := make(chan error)
 
 	// Kick off the parsing
 	for i := 1; i <= qpage.NumberOfPages; i++ {
@@ -52,15 +52,15 @@ func (qpage *QuestionsPage) Parse(conf *Config) error {
 		select {
 		case question := <-chQuestions:
 			qpage.Questions = append(qpage.Questions, question)
-    case err := <-chErrors:
-      qpage.Questions = make([]Question, 0)
-      return err
+		case err := <-chErrors:
+			qpage.Questions = make([]Question, 0)
+			return err
 		case <-chFinished:
 			c++
 		}
 	}
 
-  return nil
+	return nil
 }
 
 func (qpage *QuestionsPage) getMetaData(conf *Config) error {
@@ -74,7 +74,7 @@ func (qpage *QuestionsPage) getMetaData(conf *Config) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-    msg := fmt.Sprintf("Page broken. URL: %s", url)
+		msg := fmt.Sprintf("Page broken. URL: %s", url)
 		return BuildError(msg, nil)
 	}
 
@@ -98,7 +98,7 @@ func (qpage *QuestionsPage) getMetaData(conf *Config) error {
 	// Get breadcrumbs
 	doc.Find(breadcrumbsSelector).Each(qpage.parseBreadcrumb)
 
-  return nil
+	return nil
 }
 
 func parseQuestions(url string, chQuestions chan Question, chErrors chan error, chFinish chan bool) {
@@ -114,8 +114,8 @@ func parseQuestions(url string, chQuestions chan Question, chErrors chan error, 
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-    msg := fmt.Sprintf("Page broken. URL: %s", url)
-    chErrors <- BuildError(msg, nil)
+		msg := fmt.Sprintf("Page broken. URL: %s", url)
+		chErrors <- BuildError(msg, nil)
 	}
 
 	// Load HTML document to goquery
