@@ -12,7 +12,7 @@ conf := medtest.Config{
 
 // Initialize sitemap struct
 sitemap := medtest.Sitemap{}
-err := sitemap.Parse(&conf) # parse sitemap
+err := sitemap.Parse(&conf) // parse sitemap
 if err != nil {
   log.Fatal(err)
 }
