@@ -21,7 +21,7 @@ if err != nil {
 pack := FullPack{}
 
 // Result of sitemap parsing will be stored inside `Paths` field.
-for _, path := range sitemap.Paths { # Here we iterating through all paths
+for _, path := range sitemap.Paths { // Here we iterating through all paths
   fmt.Printf("Path: %s\n", path)
 
   fmt.Println("Parsing started...")
